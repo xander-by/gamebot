@@ -4,11 +4,11 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const pool = new Pool({
-    user: "postgres",
-    password: "scolfowQeyHa21",
+    user: process.env.DB_USER,
+    password: process.env.DB_USER,
     host: "localhost",   
-    port: "5432",
-    database: "oilrb"
+    port: process.env.DB_PORT,
+    database: process.env.DB_DATABASE
 });
 
 const poolnewdb = new Pool({
