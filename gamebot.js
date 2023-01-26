@@ -32,8 +32,6 @@ const start = () => {
     {command: '/game',  description: 'Start game'},    
   ])
   
- 
-  
 
   bot.on("message", async msg => {
     const chatid = msg.chat.id
@@ -69,6 +67,11 @@ const start = () => {
     
      const dataMsg = msg.data
      const chatid  = msg.from.id
+     
+    // Если значения еще не  определены, установим в пустой массив
+    lastKeyboards[chatid+'_keyboard'] === undefined ? lastKeyboards[chatid+'_keyboard'] = [] : ''
+    lastKeyboards[chatid+'_prompt']   === undefined ? lastKeyboards[chatid+'_prompt']   = [] : ''  
+    lastKeyboards[chatid+'_result']   === undefined ? lastKeyboards[chatid+'_result']   = [] : ''      
         
      try { 
         
@@ -105,12 +108,20 @@ const start = () => {
 
          
         if (dataMsg.toString() !== chats[chatid].toString()) {
-           bot.sendMessage(chatid, `Ты проиграл (( Я загадал ${chats[chatid]}`, newgameOptions)
-           .then(mesageSent => lastKeyboards[chatid+'_result'].push(mesageSent.message_id))  
+        //https://tlgrm.ru/_/stickers/4a5/d3f/4a5d3ff5-e6bf-4a59-91fe-14007ab378b7/9.webp
+           await bot.sendSticker(chatid, 'https://tlgrm.ru/_/stickers/4a5/d3f/4a5d3ff5-e6bf-4a59-91fe-14007ab378b7/9.webp')
+              .then(mesageSent => lastKeyboards[chatid+'_result'].push(mesageSent.message_id))          
+          
+           await bot.sendMessage(chatid, `Ты <b>проиграл</b> \u{1F622}\u{1F622}\u{1F622} Я загадал <b>${chats[chatid]}</b>`,  newgameOptions)
+              .then(mesageSent => lastKeyboards[chatid+'_result'].push(mesageSent.message_id)) 
         }
         else {
-           bot.sendMessage(chatid, `Ты угадал!!!`, newgameOptions)
-           .then(mesageSent => lastKeyboards[chatid+'_result'].push(mesageSent.message_id))   
+           // https://tlgrm.ru/_/stickers/071/40c/07140ca4-04b5-3e35-a196-ffb1a13c016c/4.webp
+          await bot.sendSticker(chatid, 'https://tlgrm.ru/_/stickers/071/40c/07140ca4-04b5-3e35-a196-ffb1a13c016c/4.webp')
+             .then(mesageSent => lastKeyboards[chatid+'_result'].push(mesageSent.message_id))    
+             
+          await bot.sendMessage(chatid, `<b>Ты угадал!!!</b>`, newgameOptions)
+             .then(mesageSent => lastKeyboards[chatid+'_result'].push(mesageSent.message_id))                               
         }
 
      }

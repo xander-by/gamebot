@@ -11,10 +11,10 @@
   }
  
   const newgameOptions = {
+   parse_mode: 'HTML',
    reply_markup: JSON.stringify({
        inline_keyboard: [
          [{text: 'Еще раз', callback_data: 'newgame'}]
-       
        ]
    })
   }
