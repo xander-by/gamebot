@@ -1,5 +1,5 @@
 import TelegramBot from "node-telegram-bot-api"
-import {pool, getlast, savelast, clearlast} from './modules/db.js'
+import {pool, getlast, savelast, clearlast, getnumberbot, setnumberbot, savehistory, gameresults} from './modules/db.js'
 
 import {gameOptions, newgameOptions} from './modules/options.js'
 import dotenv from "dotenv"
@@ -8,18 +8,16 @@ import fetch  from "node-fetch"
 import jsdom  from "jsdom"
 dotenv.config()
 
-const chats = {}
 const bot = new TelegramBot(process.env.TG_TOKEN, {polling: true})
 
 // FUNCTION NEWGAME
 const newGame = async (chatid) => {
-   const arrayfordel = []
-   await deletemessages(chatid)
+   const arrayfordel = await deletemessages(chatid)
 
    bot.sendMessage(chatid, `Я загадаю цифру от 0 до 9, а ты ее угадаешь!`)
          .then(mesageSent => savelast(chatid, arrayfordel, mesageSent.message_id))  
           
-   chats[chatid] = Math.floor(Math.random() * 10)
+   await setnumberbot(chatid, Math.floor(Math.random() * 10))
        
    bot.sendMessage(chatid, `Отгадывай!`, gameOptions)
          .then(mesageSent => savelast(chatid, arrayfordel, mesageSent.message_id))  
@@ -31,6 +29,8 @@ const deletemessages = async (chatid) => {
    const arrayfordel = await getlast(chatid) 
    await arrayfordel.forEach((el) => el ? bot.deleteMessage(chatid, el) : '')               
    await clearlast(chatid)
+   
+   return []
 };
 
 // FUNCTION START
@@ -50,8 +50,13 @@ const start = () => {
     const message_id = msg.message_id
   
     if (text === '/start') {
+       const arrayfordel = await deletemessages(chatid)
+       
+       savelast(chatid, arrayfordel, message_id)
        await bot.sendMessage(chatid, `Welcome to chat!`)
+           .then(mesageSent => savelast(chatid, arrayfordel, mesageSent.message_id))   
        await bot.sendSticker(chatid, 'https://tlgrm.ru/_/stickers/d06/e20/d06e2057-5c13-324d-b94f-9b5a0e64f2da/4.webp')
+           .then(mesageSent => savelast(chatid, arrayfordel, mesageSent.message_id))   
        return
     }
     if (text === '/info') {
@@ -63,9 +68,7 @@ const start = () => {
         newGame(chatid)
         return
     }    
-      
     bot.sendMessage(chatid, `Hello ${first_name} ${chatid}! You have sent ${text}`)
-    
   })
 
   // ОБРАБОТКА callback_query **********************  
@@ -78,24 +81,29 @@ const start = () => {
         
         await bot.answerCallbackQuery(msg.id,  {text: "You pressed " + dataMsg, show_alert: false})
         
-        if ((dataMsg === 'newgame') || (chats[chatid] === undefined)) {
+        const numberbot = await getnumberbot(chatid)
+        
+        if ((dataMsg === 'newgame') || (numberbot === undefined)) {
              newGame(chatid)
              return
         }
         
-        await deletemessages(chatid) 
-        let arrayfordel = []            
+        let arrayfordel = await deletemessages(chatid)   
+        
+        await savehistory (chatid, +numberbot, +dataMsg)   
+        
+        const results = await gameresults(chatid)   
          
-        if (dataMsg.toString() !== chats[chatid].toString()) {
+        if (+dataMsg !== +numberbot) {
            await bot.sendSticker(chatid, 'https://tlgrm.ru/_/stickers/4a5/d3f/4a5d3ff5-e6bf-4a59-91fe-14007ab378b7/9.webp')
                 .then(mesageSent => savelast(chatid, arrayfordel, mesageSent.message_id))                           
-           await bot.sendMessage(chatid, `Ты <b>проиграл</b> \u{1F622}\u{1F622}\u{1F622} Я загадал <b>${chats[chatid]}</b>`,  newgameOptions)
+           await bot.sendMessage(chatid, `Ты <b>проиграл</b> \u{1F622}\u{1F622}\u{1F622} Я загадал <b>${numberbot}</b>\nТвой процент успеха - <b>${(results * 100).toFixed(2)}%</b>`,  newgameOptions)
                .then(mesageSent => savelast(chatid, arrayfordel, mesageSent.message_id))                         
         }
         else {
           await bot.sendSticker(chatid, 'https://tlgrm.ru/_/stickers/071/40c/07140ca4-04b5-3e35-a196-ffb1a13c016c/4.webp')
                 .then(mesageSent => savelast(chatid, arrayfordel, mesageSent.message_id))                                  
-          await bot.sendMessage(chatid, `<b>Ты угадал!!!</b>`, newgameOptions)
+          await bot.sendMessage(chatid, `<b>Ты угадал!!!</b>\nТвой процент успеха - <b>${(results * 100).toFixed(2)}%</b>`, newgameOptions)
                .then(mesageSent => savelast(chatid, arrayfordel, mesageSent.message_id))                                                              
         }
 
